@@ -60,6 +60,11 @@ class LegParameters(object):
             self.max_y_vel = 0.01
             self.max_yaw_rate = 0.6
             self.z_leg_lift = 0.07
+            #추가 - 강동륜
+            self.stair_stance_time = 0.18 #변경 필요
+            self.stair_swing_time = 0.24 #변경 필요
+            self.stair_z_leg_lift = 0.07 #변경 필요
+
     
     class Physical_Params():
         l1 = 130
