@@ -47,8 +47,8 @@ class StairGaitController(GaitController): # 강동륜 님
 
     # 선속도와 각속도를 스케일링
     def updateStateCommand(self, msg, command):
-        command.velocity[0] = (0.5 + (msg.axes[2] * 0.5)) / 1.5 * self.stair_max_x_vel #self.max_x_vel에서 변경됨
-        command.velocity[1] = (0.5+ (msg.axes[2] * 0.5)) / 1.5 * self.stair_max_y_vel
+        command.velocity[0] = (0.5 + (msg.axes[2] * 0.5)) / 1.5 * self.max_x_vel 
+        command.velocity[1] = (0.5+ (msg.axes[2] * 0.5)) / 1.5 * self.max_y_vel
         command.yaw_rate = msg.axes[6] * self.max_yaw_rate
 
         print(f"Velocity X: {command.velocity[0]}, Y: {command.velocity[1]}, Yaw Rate: {command.yaw_rate}")
