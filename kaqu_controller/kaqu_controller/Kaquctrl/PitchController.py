@@ -1,6 +1,7 @@
 import rclpy
 from rclpy.node import Node
 import numpy as np
+import tf2.transformations as tft
 from std_msgs.msg import Float32 #임의로
 
 class PitchController(Node): # 소재정
@@ -29,20 +30,14 @@ class PitchController(Node): # 소재정
         else:
             return np.radians(0)
 
-    def get_pitch_matrix(self, angle: float) -> np.ndarray: #김남윤
-        # 1) angle을 디스크리트화하여 포즈 결정
-        pose = self.discretize_pose(angle)
-
-        # 2) 포즈에 해당하는 Pitch 라디안
-        pitch_rad = self.pose_to_angle[pose]  # 완전히 다른 값 가능
-
-        # 3) X축 기준 회전행렬(프로젝트 좌표계에 맞춰 수정 가능)
-        cos_p = np.cos(pitch_rad)
-        sin_p = np.sin(pitch_rad)
-        pitch_mat = np.array([
-            [1,    0,     0],
-            [0, cos_p, -sin_p],
-            [0, sin_p,  cos_p]
-        ])
-        return pitch_mat
-          
+def get_pitch_matrix(self, angle: float) -> np.ndarray:
+    radian = self.discretize_pose(angle)
+  
+    #X축 기준 회전행렬(프로젝트 좌표계에 맞춰 수정 가능)
+    pitch_mat_hom = tft.rotation_matrix(radian, (1, 0, 0))
+  
+    #생성된 4x4 행렬에서 상위 3x3 부분(회전 행렬만 해당)을 추출합니다.
+    pitch_mat = pitch_mat_hom[0:3, 0:3]
+  
+    #radian을 받을지 pitch_mat를 받을지 선택 가능
+    return pitch_mat
