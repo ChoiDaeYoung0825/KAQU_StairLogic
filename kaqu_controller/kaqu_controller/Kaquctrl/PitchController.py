@@ -1,8 +1,9 @@
 import rclpy
+from rclpy.node import Node
 import numpy as np
-from import Float32 #임의로
+from std_msgs.msg import Float32 #임의로
 
-class Pitch_controller(node) #소재정
+class PitchController(Node): # 소재정
   def __init__(self):
         super().__init__('Pitch_controller_node')
         self.subscription = self.create_subscription(
@@ -13,28 +14,20 @@ class Pitch_controller(node) #소재정
         )
         self.subscription  # prevent unused variable warning
     
-    self.pose_to_angle = {
-            -2: np.radians(-30),
-            -1: np.radians(-15),
-             0: np.radians(0),
-             1: np.radians(15),
-             2: np.radians(30)
-        }
-    
-  def discretize_pose(self, angle: float) -> int: #소재정
+  def discretize_pose(self, angle: float) -> float: #소재정
         """
-        연속 각도(angle)를 -2, -1, 0, 1, 2 중 하나로 디스크리트화
+        연속 각도(angle)를 지정된 각도 값으로 변경
         """
-        if angle < -30:
-            return -2
-        elif angle < -15:
-            return -1
-        elif angle > 15:
-            return 1
-          elif angle > 30:
-            return 1
+        if angle <= -30:
+            return np.radians(-30)
+        elif angle <= -15:
+            return np.radians(-15)
+        elif angle >= 30:
+            return np.radians(30)
+        elif angle >= 15:
+            return np.radians(15)
         else:
-            return 0
+            return np.radians(0)
 
     def get_pitch_matrix(self, angle: float) -> np.ndarray: #김남윤
         # 1) angle을 디스크리트화하여 포즈 결정
