@@ -66,6 +66,8 @@ class LegParameters(object):
             self.stair_stance_time = 0.18 #변경 필요
             self.stair_swing_time = 0.24 #변경 필요
             self.stair_z_leg_lift = 0.07 #변경 필요
+            self.stair_max_x_vel = 1/12 # 0.66 * stair_max_x_vel = 0.055가 나오도록 설정
+            self.stair_max_y_vel = 0.01 
 
     
     class Physical_Params():

@@ -32,8 +32,8 @@ class StairGaitController(GaitController): # 강동륜 님
         # 부모 클래스 (GaitController) 호출
         super().__init__(stance_time, swing_time, time_step, contact_phases, default_stance)
 
-        self.max_x_vel = leg.gait.max_x_vel
-        self.max_y_vel = leg.gait.max_y_vel
+        self.max_x_vel = leg.gait.stair_max_x_vel 
+        self.max_y_vel = leg.gait.stair_max_y_vel  
         self.max_yaw_rate = leg.gait.max_yaw_rate
         # swing이랑 stance에 정보주는거?
         self.swingController = StairSwingController(self.stance_ticks, self.swing_ticks, self.time_step,
@@ -47,8 +47,8 @@ class StairGaitController(GaitController): # 강동륜 님
 
     # 선속도와 각속도를 스케일링
     def updateStateCommand(self, msg, command):
-        command.velocity[0] = (0.5 + (msg.axes[2] * 0.5)) / 1.5 * self.max_x_vel
-        command.velocity[1] = (0.5+ (msg.axes[2] * 0.5)) / 1.5 * self.max_y_vel
+        command.velocity[0] = (0.5 + (msg.axes[2] * 0.5)) / 1.5 * self.stair_max_x_vel #self.max_x_vel에서 변경됨
+        command.velocity[1] = (0.5+ (msg.axes[2] * 0.5)) / 1.5 * self.stair_max_y_vel
         command.yaw_rate = msg.axes[6] * self.max_yaw_rate
 
         print(f"Velocity X: {command.velocity[0]}, Y: {command.velocity[1]}, Yaw Rate: {command.yaw_rate}")
@@ -102,3 +102,32 @@ class StairGaitController(GaitController): # 강동륜 님
 
 class StairSwingController(object): # 이태웅 님
 class StairStanceController(object): # 천종욱 님
+    def __init__(self, phase_length, stance_ticks, swing_ticks, time_step, z_error_constant):
+        self.phase_length = phase_length
+        self.stance_ticks = stance_ticks
+        self.swing_ticks = swing_ticks
+        self.time_step = time_step
+        self.z_error_constant = z_error_constant
+
+    def position_delta(self, leg_index, state, command):
+        z = state.foot_location[2, leg_index]
+
+        step_dist_x = command.velocity[0] * (float(self.phase_length) / self.swing_ticks)  
+        step_dist_y = command.velocity[1] * (float(self.phase_length) / self.swing_ticks)
+
+        velocity = np.array([
+            -(step_dist_x / 4) / (float(self.time_step) * self.stance_ticks),
+            -(step_dist_y / 4) / (float(self.time_step) * self.stance_ticks),
+            1.0 / self.z_error_constant * (state.robot_height - z)
+        ])
+
+        delta_pos = velocity * self.time_step
+        delta_ori = rotz(-command.yaw_rate * self.time_step)
+        return (delta_pos, delta_ori)
+
+    def next_foot_location(self, leg_index, state, command):
+        foot_location = state.foot_location[:, leg_index]  # 현재 다리 끝
+        (delta_pos, delta_ori) = self.position_delta(leg_index, state, command)
+        next_foot_location = np.matmul(delta_ori, foot_location) + delta_pos  # 이동해야 할 만큼 다리를 반대로 밀기
+        return next_foot_location
+
