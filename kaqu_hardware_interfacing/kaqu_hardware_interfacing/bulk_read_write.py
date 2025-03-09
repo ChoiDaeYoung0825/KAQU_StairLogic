@@ -274,7 +274,7 @@ class Bulk_Read_Write(Node):
         except serial.SerialException:
             self.get_logger().error("OpenCR 시리얼 포트 열기 실패")
             exit()
-        # IMU데이터 읽기
+        # IMU데이터 읽어오기
         self.imu_timer = self.create_timer(control_period, self.imu_read_loop) #50Hz
 
     # 다리 각도 제어값(A1) -> goal position
@@ -470,7 +470,7 @@ class Bulk_Read_Write(Node):
                 imu_msg.orientation.x = roll
                 imu_msg.orientation.y = pitch
                 imu_msg.orientation.z = yaw
-                self.imu_publisher.publish(imu_msg)
+                self.imu_data_publisher.publish(imu_msg)
             except ValueError:
                 self.get_logger().warn("IMU 데이터 변환 실패")
 
@@ -486,6 +486,7 @@ def main(args=None):
     finally:
         node.portHandler.closePort()
         rclpy.shutdown()
+        node.opencr_serial.close()
 
         # Disable Dynamixel Torque
         for i in dxl_id:

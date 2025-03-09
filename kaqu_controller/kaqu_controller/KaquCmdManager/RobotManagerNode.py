@@ -10,6 +10,8 @@ from kaqu_controller.Kaquctrl.TrotGaitController import TrotGaitController
 from kaqu_controller.Kaquctrl.StairGaitController import StairGaitController #StairGaitController import 추가
 from kaqu_controller.Kaquctrl.RestController import RestController
 from std_msgs.msg import Float64MultiArray
+#IMU데이터 받기
+from sensor_msgs.msg import Imu
 
 
 class StartController:
@@ -28,6 +30,14 @@ class RobotManager(Node):
         self.subscription = self.create_subscription(
             Joy, '/joy', self.joystick_callback, 10
         )
+
+        #IMU데이터 subscribe (imu = True일 때)
+        if imu:
+            self.imu_subscription = self.create_subscription(
+                Imu, 'imu/data', self.imu_orientation, 10
+            )
+        else:
+            self.imu_subscription = None  # imu가 False일 경우 구독하지 않음
 
         self.angle_publisher = self.create_publisher(Float64MultiArray, '/legpo', 10)
 
@@ -136,11 +146,11 @@ class RobotManager(Node):
         print(f"Behavior State: {self.state.behavior_state}, Current Controller: {self.current_controller}")
 
     def imu_orientation(self, msg):
-        quaternion = [msg.axes[0], msg.axes[1], msg.axes[7], 1]
-        rotation = R.from_quat(quaternion)
-        rpy = rotation.as_euler('xyz', degrees=True)  # false 하면 라디안
-        self.state.imu_roll = rpy[0]
-        self.state.imu_pitch = rpy[1]
+        # quaternion = [msg.axes[0], msg.axes[1], msg.axes[7], 1]
+        # rotation = R.from_quat(quaternion)
+        # rpy = rotation.as_euler('xyz', degrees=True)  # false 하면 라디안
+        self.state.imu_roll = msg.orientation.x
+        self.state.imu_pitch = msg.orientation.y
 
     def run(self):
         # """현재 활성화된 컨트롤러 실행."""
