@@ -23,16 +23,12 @@ from rclpy.node import Node
 import numpy as np
 from math import cos, sin, tan, atan2, acos, sqrt, pi
 from sensor_msgs.msg import JointState
-from sensor_msgs.msg import Imu 
-
-# 이부분 지피티에게 물어보니 OS가 뭔지 판단하는 부분이라고 함
-import rclpy
-from rclpy.node import Node
-import numpy as np
-from math import cos, sin, tan, atan2, acos, sqrt, pi
-from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64MultiArray
-from sensor_msgs.msg import Imu 
+
+#IMU센서값 받아오기 위해 필요함
+from sensor_msgs.msg import Imu
+import serial
+import time
 
 # 이부분 지피티에게 물어보니 OS가 뭔지 판단하는 부분이라고 함
 if os.name == 'nt':
@@ -131,6 +127,10 @@ lhip = 31.5
 
 angle_reverse = [1, 1, 1, -1, -1, -1, -1, 1, 1, 1, -1, -1]
 dxl_offset = [2048, 0, 0, 2048, 4095, 4095, 2048, 0, 0, 2048, 4095, 4095] # sim->real 방향 기준으로 + 해주면 됨
+
+#Opencr 시리얼 포트 설정(IMU센서)
+OPENCR_PORT = "/dev/ttyACM0"
+BAUDRATE_OPENCR = 115200    #모터랑 같게 맞추는게 좋을듯듯
 
 # Initialize PortHandler, PacketHandler instance
 # Initialize GroupBulkWrite instance / Initialize GroupBulkRead instace for Present Position
@@ -253,20 +253,29 @@ class Bulk_Read_Write(Node):
 
         # 주의 : openCR 연결해보고 timer period 조절해야 함
         data_pub_period = 0.02
-        control_period = 0.02
+        control_period = 0.02 #50Hz
 
         # 다리 각도 제어값(엉덩이)
         # 주의 : msg타입, 토픽이름 수정해야 함. 
         self.control_subscriber = self.create_subscription(Float64MultiArray, 'joint_group_position_controller/commands', self.control_callback, 50)
         # self.present_angle_publisher = self.create_publisher(Float64MultiArray, 'real_leg_angle', 20)
-        # self.imu_data_publisher = self.create_publisher(Imu, 'imu_data', 20)
+        self.imu_data_publisher = self.create_publisher(Imu, 'imu_data', 20)
         
         # ROS로 현재 상황을 보내는 퍼블리셔
         # self.pos_timer = self.create_timer(data_pub_period, self.publish_data)
         
         # 로봇으로 데이터를 보내는 퍼블리셔
         self.robot_timer = self.create_timer(control_period, self.timer_callback)
-
+        
+        # OpenCR 시리얼 연결
+        try:
+            self.opencr_serial = serial.Serial(OPENCR_PORT, BAUDRATE_OPENCR, timeout=1)
+            self.get_logger().info("OpenCR 시리얼 연결 성공")
+        except serial.SerialException:
+            self.get_logger().error("OpenCR 시리얼 포트 열기 실패")
+            exit()
+        # IMU데이터 읽기
+        self.imu_timer = self.create_timer(control_period, self.imu_read_loop) #50Hz
 
     # 다리 각도 제어값(A1) -> goal position
     def control_callback(self, msg):
@@ -448,6 +457,22 @@ class Bulk_Read_Write(Node):
         #     rad_angle[i] = angle_reverse[i]*rad_angle[i] # 모두 양수였던 각도를 다시 +-로 바꿔주기
 
         return sim_angle
+
+    def imu_read_loop(self):
+        """OpenCR IMU 데이터 읽기"""
+        self.opencr_serial.write(b"rpy\n")  # IMU 데이터 요청
+        imu_data = self.opencr_serial.readline().decode("utf-8").strip()
+        if imu_data:
+            try:
+                roll, pitch, yaw = map(float, imu_data.split(',')) # ','를 기준으로 데이터를를 분할
+
+                imu_msg = Imu()
+                imu_msg.orientation.x = roll
+                imu_msg.orientation.y = pitch
+                imu_msg.orientation.z = yaw
+                self.imu_publisher.publish(imu_msg)
+            except ValueError:
+                self.get_logger().warn("IMU 데이터 변환 실패")
 
 def main(args=None):
     rclpy.init(args=args)

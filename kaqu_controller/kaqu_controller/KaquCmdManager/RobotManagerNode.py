@@ -84,7 +84,7 @@ class RobotManager(Node):
             self.command.trot_event = False
             self.command.rest_event = True
             self.command.stair_event = False
-        elif msg.buttons[2]:  # Stair버튼 인식 추가 #버튼 번호는 임의로 3 - 나중에 변경? # 조이스틱에서 버튼 인식하는 것도 추가해야 함함
+        elif msg.buttons[3]:  # Stair버튼 인식 추가 #버튼 번호는 임의로 3 - 나중에 변경? # 조이스틱에서 버튼 인식하는 것도 추가해야 함함
             self.command.start_event = False
             self.command.trot_event = False
             self.command.rest_event = False
