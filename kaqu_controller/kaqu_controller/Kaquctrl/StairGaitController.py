@@ -79,11 +79,29 @@ class StairGaitController(GaitController): # 강동륜 님
 
             # imu compensation IMU 보정
             if self.use_imu:
-                compensation = self.pid_controller.run(state.imu_roll, state.imu_pitch)
-                roll_compensation = -compensation[0]
-                pitch_compensation = -compensation[1]
+                # 기존 로직은 imu센서 -> pid제어로 보정 -> roll, pitch값 모두 사용해서 각도 조정정
+                # compensation = self.pid_controller.run(state.imu_roll, state.imu_pitch)
+                # roll_compensation = -compensation[0]
+                # pitch_compensation = -compensation[1]
 
-                rot = rotxyz(roll_compensation, pitch_compensation, 0)
+                # rot = rotxyz(roll_compensation, pitch_compensation, 0)
+                # new_foot_locations = np.matmul(rot, new_foot_locations)
+
+                # 계단 로직을 위해서 일단 pitch값만 보정
+                pitch_compensation = -1 * state.imu_pitch
+                # 각도값 디스크리트
+                pitch_discreat = np.radians(0)
+                if pitch_compensation <= -30:
+                    pitch_discreat = np.radians(-30)
+                elif pitch_compensation <= -15:
+                    pitch_discreat = np.radians(-15)
+                elif pitch_compensation >= 30:
+                    pitch_discreat = np.radians(30)
+                elif pitch_compensation >= 15:
+                    pitch_discreat = np.radians(15)
+                else:
+                    pitch_discreat = np.radians(0)
+                rot = rotxyz(0, pitch_discreat, 0)
                 new_foot_locations = np.matmul(rot, new_foot_locations)
 
             state.ticks += 1
@@ -101,6 +119,7 @@ class StairGaitController(GaitController): # 강동륜 님
         return state.foot_location
 
 class StairSwingController(object): # 이태웅 님
+    
 class StairStanceController(object): # 천종욱 님
     def __init__(self, phase_length, stance_ticks, swing_ticks, time_step, z_error_constant):
         self.phase_length = phase_length
